@@ -1,0 +1,35 @@
+{
+    "name": "davidxu/yii2-dropzone",
+    "description": "A dropzone uploader extension for Yii2",
+    "type": "yii2-extension",
+    "keywords": ["yii2","extension","dropzone"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "David Xu",
+            "email": "david.xu.uts@163.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=8.0",
+        "yiisoft/yii2": "~2.0.0",
+        "yiisoft/yii2-bootstrap4": "^2.0",
+        "npm-asset/dropzone": "^5.9.3",
+        "npm-asset/cropperjs": "^1.5.12",
+        "npm-asset/jquery": "^3.6.0",
+        "fortawesome/font-awesome": "^5.15",
+        "overtrue/flysystem-qiniu": "^3.1"
+    },
+    "repositories":[
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "davidxu\\dropzone\\": "src/"
+        }
+    }
+}
