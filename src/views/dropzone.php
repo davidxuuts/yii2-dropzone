@@ -55,7 +55,9 @@ echo $hasModel
                 </button>
             </div>
             <div class="modal-body">
-                <p><?= Yii::t('app', 'Loading ...') ?></p>
+                <div class="img-container">
+                    <p><?= Yii::t('app', 'Loading ...') ?></p>
+                </div>
             </div>
             <div class="modal-footer">
                 <?= Html::button(Yii::t('app', 'Close'), [
