@@ -24,10 +24,11 @@ class Dropzone extends Widget
     public $dropzoneName;
     public $lang;
     public $metaData = [];
-    public $maxFiles = 1;
+    public $maxFiles = 9;
     public $maxFilesize;
-    public $acceptedFiles = 'image/*';
+    public $acceptedFiles;
     public $url;
+    public $headers = [];
     public $uploadBasePath = 'uploads/';
     public $drive = UploadTypeEnum::DRIVE_LOCAL;
     public $crop = false;
@@ -128,7 +129,9 @@ class Dropzone extends Widget
 
         parent::init();
         $this->lang = $this->lang ?? Yii::$app->language;
-        $this->dropzoneName = 'dropzone_' . $this->id;
+        if (!isset($this->dropzoneName) || $this->dropzoneName === '') {
+            $this->dropzoneName = 'dropzone_' . $this->id;
+        }
 
         $this->htmlOptions = [
 //            'class' => $this->dropzoneClass,
@@ -429,6 +432,9 @@ JS_INIT;
             'clickable' => '.fileinput-button',
             'init' => new JsExpression($dropzoneInit),
         ];
+        if ($this->headers) {
+            $clientOptions['headers'] = $this->headers;
+        }
         if ($this->crop) {
             $clientOptions['transformFile'] = new JsExpression($transformFile);
         }
