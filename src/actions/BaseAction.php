@@ -73,8 +73,11 @@ class BaseAction extends Action
             $dir = rtrim($dir);
         }
         if ($params['key']) {
-            if (substr($key, 1) === '/') {
-                $key = ltrim($key, 1);
+
+            if (substr($params['key'], 1) === '/') {
+                $key = ltrim($params['key'], 1);
+            } else {
+                $key = $params['key'];
             }
             $urlPath = $url . DIRECTORY_SEPARATOR . $key;
             $savePath = $dir . DIRECTORY_SEPARATOR . $key;
@@ -87,6 +90,7 @@ class BaseAction extends Action
             $savePath = $dir . $relativePath;
         }
         $result = $this->saveLocal($file, $savePath);
+
         if ($result && $mimeType === 'images') {
             [$width, $height] = getimagesize($savePath);
         }
@@ -105,7 +109,7 @@ class BaseAction extends Action
             'width' => $width,
             'height' => $height,
             'duration' => (strcmp($mime, 'video') === 0 || strcmp($mime, 'audio')) ? $this->getDuration($file) : '0',
-            'hash' => Etag::sum($savePath)[0],
+            'hash' => Etag::sum($savePath) ? Etag::sum($savePath)[0] : null,
             'upload_ip' => Yii::$app->request->remoteIP,
         ];
         if ($params['store_in_db']) {
@@ -191,8 +195,8 @@ class BaseAction extends Action
     {
         $ds = DIRECTORY_SEPARATOR;
         $tmpArray = explode($ds, $savePath);
-        $tmpArray = array_pop($tmpArray);
-        $storePath = implode(DIRECTORY_SEPARATOR, $tmpArray);
+        $storePathArray = array_slice($tmpArray, 0,count($tmpArray) -1);
+        $storePath = implode(DIRECTORY_SEPARATOR, $storePathArray);
         if (!is_dir($storePath)) {
             @mkdir($storePath, 0755, true);
         }

@@ -3,6 +3,7 @@
 namespace davidxu\dropzone;
 
 use davidxu\base\enums\UploadTypeEnum;
+use davidxu\base\helpers\StringHelper;
 use davidxu\config\helpers\ArrayHelper;
 use davidxu\sweetalert2\assets\SweetAlert2Asset;
 use Qiniu\Auth;
@@ -21,7 +22,6 @@ use yii\web\View;
 class Dropzone extends Widget
 {
     public $clientOptions = [];
-    public $dropzoneName;
     public $lang;
     public $metaData = [];
     public $maxFiles = 9;
@@ -71,9 +71,12 @@ class Dropzone extends Widget
     private $_encodedMetaData;
     private $_encodedCropOptions;
     private $_encodedExistFiles;
+    private $_storeInDB;
+    private $containerId;
 
     public function init()
     {
+        $this->containerId = 'dz' . StringHelper::generateRandomString(14);
         $this->registerTranslations();
         if ($this->name === null && !$this->hasModel()) {
             throw new InvalidConfigException("Either 'name', or 'model' and 'attribute' properties must be specified.");
@@ -129,15 +132,6 @@ class Dropzone extends Widget
 
         parent::init();
         $this->lang = $this->lang ?? Yii::$app->language;
-        if (!isset($this->dropzoneName) || $this->dropzoneName === '') {
-            $this->dropzoneName = 'dropzone_' . $this->id;
-        }
-
-        $this->htmlOptions = [
-//            'class' => $this->dropzoneClass,
-            'id' => $this->dropzoneName,
-        ];
-
         if ($this->drive === UploadTypeEnum::DRIVE_LOCAL) {
             $this->metaData['file_field'] = $this->name;
             $this->metaData['store_in_db'] = $this->storeInDB;
@@ -166,17 +160,24 @@ class Dropzone extends Widget
         ], $this->cropOptions);
         $this->_encodedCropOptions = Json::encode($this->cropOptions);
         $this->_encodedExistFiles = Json::encode($this->existFiles);
+        $this->_storeInDB = $this->storeInDB ? 'true' : 'false';
     }
 
     public function run()
     {
         $this->registerClientScript();
+        return $this->renderPreviewContainer();
+    }
+
+    protected function renderPreviewContainer()
+    {
         return $this->render('dropzone', [
             'model' => $this->model,
             'name' => $this->name,
             'value' => $this->value,
             'attribute' => $this->attribute,
             'options' => $this->htmlOptions,
+            'containerId' => $this->containerId,
             'hasModel' => $this->hasModel(),
         ]);
     }
@@ -185,154 +186,26 @@ class Dropzone extends Widget
     {
         $_view = $this->getView();
         $this->registerAssets($_view);
-        $js = <<<JS
-Dropzone.autoDiscover = false
-JS;
-
-        $_view->registerJs($js, View::POS_END);
         $script = <<<JS
-
-Array.prototype.indexOf = function(val) { 
-    for (var i = 0; i < this.length; i++) { 
-        if (this[i] === val) return i; 
-    } 
-    return -1; 
+let myDropzone_{$this->containerId} = new Dropzone('#{$this->containerId}', {$this->_encodedClientOptions})
+myDropzone_{$this->containerId}.options.init = init(
+    myDropzone_{$this->containerId}, 
+    $('#{$this->getFieldId()}'), 
+    {$this->_encodedExistFiles}, 
+    {$this->_storeInDB}
+)
+if ($.isFunction(dropzoneEvents)) {
+    dropzoneEvents(
+        myDropzone_{$this->containerId}, 
+        $('#{$this->getFieldId()}'), 
+        $this->_encodedMetaData, 
+        {$this->_storeInDB}, 
+        '{$this->uploadBasePath}', 
+        '{$this->generateKey()}', 
+        {$this->isQiniuDrive()},
+        '{$this->getQiniuToken()}'
+    )
 }
-Array.prototype.remove = function(val) { 
-    var index = this.indexOf(val); 
-    if (index > -1) { 
-        this.splice(index, 1); 
-    } 
-}
-
-// const getHash = function (file) {
-//     return new Promise(function(resolve, reject) {
-//         let hash = ''
-//         let reader = new FileReader()
-//         reader.readAsArrayBuffer(file)
-//         reader.onload = () => {
-//             hash = getEtag(reader.result)
-//             resolve(hash)
-//         }
-//     })
-// }
-const crop = `{$this->crop}` ? true : false
-let previewNode = document.querySelector('#template')
-previewNode.id = ''
-const previewTemplate = previewNode.innerHTML
-previewNode.parentNode.removeChild(previewNode)
-let existFiles = {$this->_encodedExistFiles}, cropOptions = {$this->_encodedCropOptions}, clientOptions = {$this->_encodedClientOptions}
-clientOptions.previewTemplate = previewTemplate
-let myDropzone = new Dropzone(document.body, clientOptions)
-myDropzone.on("addedfile", function (file) {
-    // if (!crop) {
-    //     getHash(file).then(hash => {
-    //         console.log('file hash', hash)
-    //     })
-    // }
-})
-myDropzone.on("addedfiles", function() {
-    if (myDropzone.files.length >= myDropzone.options.maxFiles) {
-        $('#previews').find('.fileinput-button').parent().addClass('none')
-    }
-})
-myDropzone.on('sending', function (file, xhr, formData) {
-    $.each({$this->_encodedMetaData}, function(key, value) {
-        formData.append(key,value)
-    })
-    let key = '{$this->generateKey()}', extension = file.name.substr(file.name.lastIndexOf('.'))
-    const mimeType = file.type.split('/', 1)[0]
-    let fileType = 'others'
-    if (mimeType === 'image') {
-        fileType = 'images'
-    } else if (mimeType === 'video') {
-        fileType = 'videos'
-    } else if (mimeType === 'audio') {
-        fileType = 'audios'
-    }
-    formData.append('key', '{$this->uploadBasePath}' + fileType + '/' + key + extension)
-    if ({$this->isQiniuDrive()}) {
-        formData.append('x:file_type', fileType)
-        formData.append('token', '{$this->getQiniuToken()}')
-    }
-})
-myDropzone.on('error', (file, message) => {
-    myDropzone.removeFile(file)
-    Swal.fire({
-        toast: true,
-        position: 'top-end',
-        title: myDropzone.options.dictResponseError,
-        showConfirmButton: false,
-        icon: 'error'
-    })
-})
-// myDropzone.on('uploadprogress', function (file, progress, bytesSent) {
-//     console.log('uploadprogress', file, progress, bytesSent)
-// })
-// myDropzone.on('complete', function (file) {
-//     console.log('complete', file)
-// })
-myDropzone.on('success', function(file, response) {
-    if (response.success === true || response.success === 'true') {
-        if ({$this->storeInDB}) {
-            if (myDropzone.options.maxFiles > 1) {
-                let value = $('#{$this->dropzoneName}').val()
-                let valueArray = value.split(',')
-                if (valueArray.includes('0')) {
-                    valueArray.remove('0')
-                }
-                valueArray.push(response.result.id)
-                $('#{$this->dropzoneName}').val(valueArray.toString())
-            } else {
-                $('#{$this->dropzoneName}').val(response.result.id)
-            }
-        } else {
-            if (myDropzone.options.maxFiles > 1) {
-                let value = $('#{$this->dropzoneName}').val()
-                let valueArray = value.split(',')
-                valueArray.push(response.result.path)
-                $('#{$this->dropzoneName}').val(valueArray.toString())
-            } else {
-                $('#{$this->dropzoneName}').val(response.result.pathes)
-            }
-        }
-        $(file.previewElement).children('.progress').attr({"style":"opacity:0;"})
-    } else {
-        myDropzone.removeFile(file)
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            title: response.result,
-            showConfirmButton: false,
-            icon: 'error'
-        })
-    }
-})
-myDropzone.on("maxfilesexceeded", function(file) {
-    myDropzone.removeFile(file)
-    $('#previews').find('.fileinput-button').parentNode.addClass('none')
-})
-myDropzone.on("removedfile", function(file) {
-    let value = $('#{$this->dropzoneName}').val()
-    let valueArray = value.split(',')    
-    // Add array remove function
-    Array.prototype.removeValue = function(v) {
-        for(let i = 0, j = 0; i < this.length; i++) {
-            if(this[i] != v) {
-                this[j++] = this[i];
-            }
-        }
-	    this.length -= 1;
-    }
-    
-    if ({$this->storeInDB}) {
-        valueArray.removeValue(file.id)
-    } else {
-        valueArray.removeValue(file.path)
-    }
-    $('#{$this->dropzoneName}').val(valueArray.toString())
-    $('#previews').find('.fileinput-button').parent().removeClass('none')
-})
 JS;
         $_view->registerJs($script, View::POS_READY);
     }
@@ -365,72 +238,30 @@ JS;
     image.src = URL.createObjectURL(file)
     
     $('#dropzone-modal').find('.img-container').html(image)
-    const cropper = new Cropper(image, cropOptions)
+    const cropper = new Cropper(image, {$this->_encodedCropOptions})
 })
 JS_TF;
-
-        $dropzoneInit = /** @lang JavaScript */ <<< JS_INIT
-function () {
-    let myDropzone = this
-    let typeOfExistFiles = 'undefined'
-    if (Object.prototype.toString.call(existFiles) === '[object Array]') {
-        typeOfExistFiles = 'array'
-    }
-    if (Object.prototype.toString.call(existFiles) === '[object Object]') {
-        typeOfExistFiles = 'object'
-    }
-    // Is array
-    if (typeOfExistFiles === 'array' && existFiles.length > 0) {
-        let valueArray = []
-        existFiles.map(function(existFile) {
-            if (Object.prototype.toString.call(existFile) === '[object Object]' 
-                && existFile.hasOwnProperty('name')
-                && existFile.hasOwnProperty('size')
-                && existFile.hasOwnProperty('path')
-            ) {
-                myDropzone.displayExistingFile(existFile, existFile.path)
-                if ({$this->storeInDB}) {
-                    valueArray.push(existFile.id)
-                } else {
-                    valueArray.push(existFile.path)
-                }
-                $(existFile.previewElement).children('.progress').attr({"style":"opacity:0;"})
-            }
-        })
-        $('#{$this->dropzoneName}').val(valueArray.toString())
-    }
-    // Is object
-    if (
-        typeOfExistFiles === 'object'
-        && existFiles.hasOwnProperty('name')
-        && existFiles.hasOwnProperty('size')
-        && existFiles.hasOwnProperty('path')
-        ) {
-            myDropzone.displayExistingFile(existFiles, existFiles.path)            
-            if ({$this->storeInDB}) {
-                $('#{$this->dropzoneName}').val(existFiles.id)
-            } else {
-                $('#{$this->dropzoneName}').val(existFiles.path)
-            }
-            $(existFiles.previewElement).children('.progress').attr({"style":"opacity:0;"})
-    }
-    if (
-        (typeOfExistFiles === 'array' && existFiles.length >= myDropzone.options.maxFiles)
-        || (typeOfExistFiles === 'object' && myDropzone.options.maxFiles <= 1)
-    ) {
-        $('#previews').find('.fileinput-button').parent().addClass('none')
-    }
-}
-JS_INIT;
-
+        $previewTemplate = '<div class="col">'
+            . '    <div class="preview"><img data-dz-thumbnail /></div>'
+            . '        <div class="info">'
+            . '            <p class="size text-right" data-dz-size></p>'
+            . '            <p class="name text-center text-middle" data-dz-name></p>'
+            . '        </div>'
+            . '    <div class="progress active" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">'
+            . '        <div'
+            . '            class="progress-bar progress-bar-striped progress-bar-animated progress-bar-success"'
+            . '            style="width: 0%" role="progressbar" data-dz-uploadprogress>'
+            . '        </div>'
+            . '    </div>'
+            . '</div>';
         $clientOptions = [
             'url' => $this->url,
             'paramName' => 'file',
             'addRemoveLinks' => true,
             'parallelUploads' => 20,
-            'previewsContainer' => '#previews',
-            'clickable' => '.fileinput-button',
-            'init' => new JsExpression($dropzoneInit),
+            'previewsContainer' => '#previews_' . $this->containerId,
+            'clickable' => '#fileinput_' . $this->containerId,
+            'previewTemplate' => $previewTemplate,
         ];
         if ($this->headers) {
             $clientOptions['headers'] = $this->headers;
@@ -445,7 +276,6 @@ JS_INIT;
 
     protected function registerAssets($view)
     {
-        DropzoneAsset::register($view);
         SweetAlert2Asset::register($view);
     }
 
@@ -455,6 +285,11 @@ JS_INIT;
     protected function hasModel()
     {
         return $this->model instanceof Model && $this->attribute !== null;
+    }
+
+    protected function getFieldId()
+    {
+        return $this->hasModel() ? Html::getInputId($this->model, $this->attribute) : StringHelper::getInputId($this->name);
     }
 
     protected function getQiniuToken()

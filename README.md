@@ -4,19 +4,23 @@ A dropzone uploader extension for Yii2
 
 Installation
 ------------
+This is v2.0, it supports multiple dropzone instances on one page;
+if ensure only one instance per page, you can still use v1.0.
+
+You can upload files to local server or Qiniu kodo currently.
 
 The preferred way to install this extension is through [composer](http://getcomposer.org/download/).
 
 Either run
 
 ```
-php composer.phar require --prefer-dist davidxu/yii2-dropzone "^1.0.0"
+php composer.phar require --prefer-dist davidxu/yii2-dropzone "^2.0.0"
 ```
 
 or add
 
 ```
-"davidxu/yii2-dropzone": "^1.0.0"
+"davidxu/yii2-dropzone": "^2.0.0"
 ```
 
 to the require section of your `composer.json` file.
@@ -40,6 +44,9 @@ and then simply use it in your code by:
 use davidxu\dropzone\Dropzone;
 use yii\helpers\Url;
 
+// Important: register DropzoneAsset first on page
+use davidxu\dropzone\assets\DropzoneAsset;
+DropzoneAsset::register($this);
 // without ActiveForm
 echo Dropzone::widget([
     'model' => $model,
@@ -70,7 +77,7 @@ echo Dropzone::widget([
 //            'size' => 2222,
 //        ],
 //    ],
-    'storeInDB' => false, // return file id in DB to image url instead of file url if true, migrate model db first
+    'storeInDB' => true, // return file id in DB to image url instead of file url if true, migrate model db first. default false
     'metaData' => ['foo' => 'bar',],
     'crop' => true, // default false, if true, the 'maxFiles' will be forced to 1
 ]); ?>
@@ -79,17 +86,17 @@ echo Dropzone::widget([
 // with ActiveForm
 echo $form->field($model, 'image_src')
     ->widget(Dropzone::class, [
-   'url' => Url::to('@web/upload/local'),
-    'maxFiles' => 3,
-    'acceptedFiles' => 'image/*',
-    'uploadBasePath' => 'uploads/',
-    // for single file,
-    'existFiles' => [
-        'id' => 1,
-        'name' => 'some_name.jpg',
-        'path' => 'some_path_for_file',
-        'size' => 1111,
-    ],
+        'url' => Url::to('@web/upload/local'),
+        'maxFiles' => 3,
+        'acceptedFiles' => 'image/*',
+        'uploadBasePath' => 'uploads/',
+        // for single file,
+        'existFiles' => [
+            'id' => 1,
+            'name' => 'some_name.jpg',
+            'path' => 'some_path_for_file',
+            'size' => 1111,
+        ],
     // for multiple files
 //    'existFiles' => [
 //        [
@@ -104,8 +111,7 @@ echo $form->field($model, 'image_src')
 //            'size' => 2222,
 //        ],
 //    ],
-    'storeInDB' => false,
-    'metaData' => ['foo' => 'bar',],
+// ....
 ]);?>
 
 ```
@@ -145,6 +151,9 @@ use davidxu\dropzone\Dropzone;
 use davidxu\base\enums\QiniuUploadRegionEnum;
 use davidxu\base\enums\UploadTypeEnum;
 use yii\helpers\Url;
+// Important: register DropzoneAsset first on page
+use davidxu\dropzone\assets\DropzoneAsset;
+DropzoneAsset::register($this);
 
 echo Dropzone::widget([
     'model' => $model,
@@ -166,22 +175,22 @@ echo $form->field($model, 'image_src')
     'qiniuSecretKey' => Yii::$app->params['qiniu.bucket'],
     'qiniuCallbackUrl' => Yii::$app->params['qiniu.bucket'],
     // default 'qiniuCallbackBody' here, you can modify them.
-    'qiniuCallbackBody' => [
-        'drive' => UploadTypeEnum::DRIVE_QINIU,
-        'specific_type' => '$(mimeType)',
-        'file_type' => '$(x:file_type)',
-        'path' => '$(key)',
-        'hash' => '$(etag)',
-        'size' => '$(fsize)',
-        'name' => '$(fname)',
-        'extension' => '$(ext)',
-        'member_id' => '$(x:member_id)',
-        'width' => '$(imageInfo.width)',
-        'height' => '$(imageInfo.height)',
-        'duration' => '$(avinfo.format.duration)',
-        'store_in_db' => '$(x:store_in_db)',
-        'upload_ip' => '$(x:upload_ip)',
-    ];
+//    'qiniuCallbackBody' => [
+//        'drive' => UploadTypeEnum::DRIVE_QINIU,
+//        'specific_type' => '$(mimeType)',
+//        'file_type' => '$(x:file_type)',
+//        'path' => '$(key)',
+//        'hash' => '$(etag)',
+//        'size' => '$(fsize)',
+//        'name' => '$(fname)',
+//        'extension' => '$(ext)',
+//        'member_id' => '$(x:member_id)',
+//        'width' => '$(imageInfo.width)',
+//        'height' => '$(imageInfo.height)',
+//        'duration' => '$(avinfo.format.duration)',
+//        'store_in_db' => '$(x:store_in_db)',
+//        'upload_ip' => '$(x:upload_ip)',
+//    ];
     // ...... (refer to local config in view)
 ]);?>
 

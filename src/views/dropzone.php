@@ -1,71 +1,32 @@
 <?php
 use yii\bootstrap4\Html;
 use yii\base\Model;
-
+use davidxu\base\helpers\StringHelper;
 /**
  * @var Model $model
  * @var string $attribute
  * @var string $value
  * @var array $options
  * @var bool $hasModel
+ * @var string $containerId
  */
-
-echo $hasModel
-    ? Html::activeHiddenInput($model, $attribute, $options)
-    : Html::hiddenInput($name, $value, $options);
+echo Html::beginTag('div', ['class' => 'dropzone-container', 'id' => $containerId]);
+if ($hasModel) {
+    echo Html::activeHiddenInput($model, $attribute, $options);
+} else {
+    if (!array_key_exists('id', $options)) {
+        $options['id'] = StringHelper::getInputId($name);
+    }
+    echo Html::hiddenInput($name, $value, $options);
+}
 ?>
-<div class="row" id="previews">
-    <div class="col">
-        <div class="fileinput-button">
-            <i class="fas fa-plus"></i>
+    <div class="row dropzone-previews" id = "previews_<?= $containerId ?>">
+        <div class="col">
+            <?= Html::tag(
+                'div',
+                '<i class="fas fa-plus"></i>',
+                ['class' => 'fileinput-button', 'id' => 'fileinput_' . $containerId]
+            ) ?>
         </div>
     </div>
-</div>
-<div id="template">
-    <div class="col">
-        <div class="preview"><img data-dz-thumbnail /></div>
-        <div class="info">
-            <p class="size text-right" data-dz-size></p>
-            <p class="name text-center text-middle" data-dz-name></p>
-        </div>
-        <div
-                class="progress active"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                aria-valuenow="0"
-        >
-            <div
-                    class="progress-bar progress-bar-striped progress-bar-animated progress-bar-success"
-                    style="width: 0%"
-                    role="progressbar"
-                    data-dz-uploadprogress
-            ></div>
-        </div>
-
-    </div>
-</div>
-
-<div class="modal fade" id="dropzone-modal" aria-hidden="true" data-backdrop="static" style="display: none;" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title"><?= Yii::t('app', 'Basic information') ?></h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">×</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="img-container">
-                    <p><?= Yii::t('app', 'Loading ...') ?></p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <?= Html::button(Yii::t('app', 'Close'), [
-                    'class' => 'btn btn-secondary',
-                    'data-dismiss' => 'modal'
-                ]) ?>
-                <?= Html::submitButton('OK', ['class' => 'btn btn-primary']) ?>
-            </div>
-        </div>
-    </div>
-</div>
+<?= Html::endTag('div');
