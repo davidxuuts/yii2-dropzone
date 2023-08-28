@@ -14,6 +14,6 @@ return [
     'dictCancelUpload' => '<i class="fas fa-ban"></i>',
     'dictRemoveFile' => '<i class="fas fa-times"></i>',
     'Unknown error' => '未知错误',
-    'Data writting error' => '数据写入错误',
+    'Data writing error' => '数据写入错误',
     'Invalid configuration: {attribute}' => '无效配置: {attribute}',
 ];

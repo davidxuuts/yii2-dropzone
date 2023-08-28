@@ -6,6 +6,7 @@ use davidxu\base\helpers\StringHelper;
  * @var Model $model
  * @var string $attribute
  * @var string $value
+ * @var string $name
  * @var array $options
  * @var bool $hasModel
  * @var string $containerId

@@ -1,43 +1,8 @@
-Dropzone.autoDiscover = false
-
-jQuery(function ($) {
-    const cropModal = '<div class="modal fade" id="dropzone-modal" aria-hidden="true" data-backdrop="static" style="display: none;" tabindex="-1">'
-        + '    <div class="modal-dialog">'
-        + '        <div class="modal-content">'
-        + '            <div class="modal-header">'
-        + '                <button type="button" class="close" data-dismiss="modal" aria-label="Close">'
-        + '                    <span aria-hidden="true">×</span>'
-        + '                </button>'
-        + '            </div>'
-        + '            <div class="modal-body">'
-        + '                <div class="img-container">'
-        + '                    <p>Loading ...</p>'
-        + '                </div>'
-        + '            </div>'
-        + '            <div class="modal-footer">'
-        + '                <button class="btn btn-secondary" data-dismiss="modal">关闭</button>'
-        + '                <button type="submit" class="btn btn-primary">OK</button>'
-        + '            </div>'
-        + '        </div>'
-        + '    </div>'
-        + '</div>'
-
-    $('section.content').append(cropModal)
-})
-
-const getHash = function (file) {
-    return new Promise(function(resolve, reject) {
-        let hash = ''
-        let reader = new FileReader()
-        reader.readAsArrayBuffer(file)
-        reader.onload = () => {
-            hash = getEtag(reader.result)
-            resolve(hash)
-        }
-    })
+if (typeof Dropzone !== 'undefined' || Dropzone) {
+    Dropzone.autoDiscover = false;
 }
 
-function init (myDropzone, fieldEl, existFiles, isStoreInDB) {
+function dropzoneInit (myDropzone, fieldEl, existFiles, isStoreInDB, uploadDrive) {
     let typeOfExistFiles = 'undefined'
     if (Object.prototype.toString.call(existFiles) === '[object Array]') {
         typeOfExistFiles = 'array'
@@ -86,52 +51,94 @@ function init (myDropzone, fieldEl, existFiles, isStoreInDB) {
     ) {
         $(myDropzone.options.previewsContainer).find('.fileinput-button').parent().addClass('none')
     }
+
+    if (uploadDrive === 'local') {
+        myDropzone.options.chunksUploaded = function (file, done) {
+            const { responseText } = file.xhr
+            let response = (typeof responseText === 'string') ? JSON.parse(responseText) : responseText
+            const { success, completed, data } = response
+            if (success && completed) {
+                data.eof = true
+                $.ajax({
+                    type: 'POST',
+                    url: myDropzone.options.url,
+                    data: data,
+                    success: function (res) {
+                        file.status = Dropzone.SUCCESS
+                        myDropzone.emit('success', file, res);
+                        // done();
+                    },
+                    error: function (msg) {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            title: myDropzone.options.dictResponseError,
+                            showConfirmButton: false,
+                            icon: 'error'
+                        })
+                    }
+                });
+            } else {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    title: myDropzone.options.dictResponseError,
+                    showConfirmButton: false,
+                    icon: 'error'
+                })
+            }
+        }
+    }
 }
 
-function dropzoneEvents(myDropzone, fieldEl, metaData, isStoreInDB, uploadBasePath, fileKey, driveIsQiniu, qiniuToken) {
-    Array.prototype.indexOf = function (val) {
-        for (let i = 0; i < this.length; i++) {
-            if (this[i] === val) return i;
-        }
-        return -1;
-    }
-    Array.prototype.remove = function (val) {
-        let index = this.indexOf(val);
-        if (index > -1) {
-            this.splice(index, 1);
-        }
-    }
+function dropzoneEvents(
+    myDropzone,
+    fieldEl,
+    metaData,
+    isStoreInDB,
+    uploadBasePath,
+    uploadDrive,
+    qiniuToken,
+    secondUpload,
+    getHashUrl
+) {
     myDropzone.on("addedfile", function (file) {
-        // if (!crop) {
-        //     getHash(file).then(hash => {
-        //         console.log('file hash', hash)
-        //     })
-        // }
+        if (secondUpload) {
+            getHash(file).then(hash => {
+                $.ajax({
+                    data: {hash: hash},
+                    url: getHashUrl,
+                    type: 'POST',
+                    success: function (response) {
+                        const {success} = response
+                        if (success === true || success === 'true') {
+                            myDropzone.emit('success', file, response)
+                        } else {
+                            handleUpload(myDropzone, file, uploadBasePath, metaData, uploadDrive, qiniuToken)
+                        }
+                    }
+                })
+            })
+        } else {
+            handleUpload(myDropzone, file, uploadBasePath, metaData, uploadDrive, qiniuToken)
+        }
     })
     myDropzone.on("addedfiles", function () {
         if (myDropzone.files.length >= myDropzone.options.maxFiles) {
             $(myDropzone.options.previewsContainer).find('.fileinput-button').parent().addClass('none')
         }
+        if (uploadDrive === 'local') {
+            myDropzone.processQueue()
+        }
     })
     myDropzone.on('sending', function (file, xhr, formData) {
-        $.each(metaData, function (key, value) {
-            formData.append(key, value)
+        const fileInfo = getFileInfo(file, uploadBasePath)
+        $.each(metaData, function (mtKey, value) {
+            formData.append(mtKey, value)
         })
-        let extension = file.name.substr(file.name.lastIndexOf('.'))
-        const mimeType = file.type.split('/', 1)[0]
-        let fileType = 'others'
-        if (mimeType === 'image') {
-            fileType = 'images'
-        } else if (mimeType === 'video') {
-            fileType = 'videos'
-        } else if (mimeType === 'audio') {
-            fileType = 'audios'
-        }
-        formData.append('key', uploadBasePath + fileType + '/' + fileKey + extension)
-        if (driveIsQiniu) {
-            formData.append('x:file_type', fileType)
-            formData.append('token', qiniuToken)
-        }
+        $.each(fileInfo, function (k, value) {
+            formData.append(k, value)
+        })
     })
     myDropzone.on('error', (file, message) => {
         myDropzone.removeFile(file)
@@ -143,41 +150,29 @@ function dropzoneEvents(myDropzone, fieldEl, metaData, isStoreInDB, uploadBasePa
             icon: 'error'
         })
     })
-    // myDropzone.on('uploadprogress', function (file, progress, bytesSent) {
-    //     console.log('uploadprogress', file, progress, bytesSent)
-    // })
-    // myDropzone.on('complete', function (file) {
-    //     console.log('complete', file)
-    // })
     myDropzone.on('success', function (file, response) {
-        console.log(response)
-        if (response.success === true || response.success === 'true') {
-            if (isStoreInDB) {
+        const { success, data } = response
+        if (success === true || success === 'true') {
+            if (isStoreInDB === true) {
                 if (myDropzone.options.maxFiles > 1) {
                     let value = fieldEl.val()
-                    console.log('158 fieldEl', fieldEl, 'val', value)
                     let valueArray = value.split(',')
                     if (valueArray.includes('0')) {
                         valueArray.remove('0')
                     }
-                    valueArray.push(response.result.id)
+                    valueArray.push(data.id)
                     fieldEl.val(valueArray.toString())
-                    console.log('165 fieldEl', fieldEl, 'val', value)
                 } else {
-                    fieldEl.val(response.result.id)
-                    console.log('167, fieldEl', fieldEl, 'val', fieldEl.val())
+                    fieldEl.val(data.id)
                 }
             } else {
                 if (myDropzone.options.maxFiles > 1) {
                     let value = fieldEl.val()
-                    console.log('173, fieldEl', fieldEl, 'val', value)
                     let valueArray = value.split(',')
-                    valueArray.push(response.result.path)
+                    valueArray.push(data.path)
                     fieldEl.val(valueArray.toString())
-                    console.log('177, fieldEl', fieldEl, 'val', value)
                 } else {
-                    fieldEl.val(response.result.path)
-                    console.log('fieldEl 180', fieldEl, 'val', fieldEl.val())
+                    fieldEl.val(data.path)
                 }
             }
             fieldEl.parent().find('.progress').attr({"style": "opacity:0;"})
@@ -186,7 +181,7 @@ function dropzoneEvents(myDropzone, fieldEl, metaData, isStoreInDB, uploadBasePa
             Swal.fire({
                 toast: true,
                 position: 'top-end',
-                title: response.result,
+                title: data,
                 showConfirmButton: false,
                 icon: 'error'
             })
@@ -202,7 +197,7 @@ function dropzoneEvents(myDropzone, fieldEl, metaData, isStoreInDB, uploadBasePa
         // Add array remove function
         Array.prototype.removeValue = function (v) {
             for (let i = 0, j = 0; i < this.length; i++) {
-                if (this[i] != v) {
+                if (this[i] !== v) {
                     this[j++] = this[i];
                 }
             }
@@ -215,38 +210,47 @@ function dropzoneEvents(myDropzone, fieldEl, metaData, isStoreInDB, uploadBasePa
             valueArray.removeValue(file.path)
         }
         fieldEl.val(valueArray.toString())
-        // $(myDropzone.options.previewsContainer).find('.fileinput-button').parent().removeClass('none')
         fieldEl.parent().find('.fileinput-button').parent().removeClass('none')
     })
 }
 
-function transformFile(cropOptions) {
-    return function (file, done) {
-        $('#dropzone-modal').modal('show')
-        let submitButton = $('#dropzone-modal').find('button[type="submit"]')
-        let myDropZone = this
-        submitButton.on('click', function (event) {
-            event.preventDefault()
-            var canvas = cropper.getCroppedCanvas({width: 256, height: 256})
-            canvas.toBlob(function (blob) {
-                myDropZone.createThumbnail(
-                    blob,
-                    myDropZone.options.thumbnailWidth,
-                    myDropZone.options.thumbnailHeight,
-                    myDropZone.options.thumbnailMethod,
-                    false,
-                    function (dataURL) {
-                        myDropZone.emit('thumbnail', file, dataURL)
-                        done(blob)
-                    })
-            })
-            $('#dropzone-modal').modal('hide')
-        })
-        const image = new Image()
-        image.src = URL.createObjectURL(file)
-
-        $('#dropzone-modal').find('.img-container').html(image)
-        const cropper = new Cropper(image, cropOptions)
+function handleUpload (myDropzone, file, uploadBasePath, metaData, uploadDrive, qiniuToken) {
+    const { file_type, key, name, mime_type } = getFileInfo(file, uploadBasePath)
+    const formData = {}
+    $.each(metaData, function (mtKey, value) {
+        formData[mtKey] = value
+    })
+    if (uploadDrive.toLowerCase() === 'qiniu') {
+        formData['x:file_type'] = file_type
+        const config = {
+            useCdnDomain: true,
+            // chunkSize: Math.floor({$this->chunkSize},  1024 * 1024)
+        }
+        const putExtra = {
+            fname: name,
+            mimeType: mime_type,
+            customVars: formData
+        }
+        const observable = qiniu.upload(file, key, qiniuToken, putExtra, config)
+        const observer = {
+            next(res) {
+                // const percent = res.total.percent.toFixed(2)
+                // console.log('upload percent', percent)
+            },
+            error(err) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    title: myDropzone.options.dictResponseError,
+                    showConfirmButton: false,
+                    icon: 'error'
+                })
+            },
+            complete(res) {
+                myDropzone.options.autoProcessQueue = false;
+                myDropzone.emit('success', file, res)
+            }
+        }
+        const subscription = observable.subscribe(observer)
     }
 }
-

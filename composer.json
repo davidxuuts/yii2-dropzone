@@ -12,19 +12,13 @@
     ],
     "require": {
         "php": ">=8.0",
-        "yiisoft/yii2": "~2.0.0",
-        "yiisoft/yii2-bootstrap4": "^2.0",
+        "yiisoft/yii2": "^2.0.13",
         "npm-asset/dropzone": "^5.9.3",
-        "npm-asset/cropperjs": "^1.5.12",
-        "npm-asset/jquery": "^3.6.0",
-        "davidxu/yii2-sweetalert2-widget": "^2.0.5",
-        "qiniu/php-sdk": "^7.6.0",
-        "fortawesome/font-awesome": "^5.15"
+        "davidxu/yii2-base": "^2.0"
     },
     "suggest": {
         "php-ffmpeg/php-ffmpeg": "^1.0",
-        "overtrue/flysystem-qiniu": "^3.1",
-        "npm-asset/qiniu-js": "^3.4.1"
+        "overtrue/flysystem-qiniu": "^3.1"
     },
     "repositories":[
         {
