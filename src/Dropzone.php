@@ -15,7 +15,6 @@ use yii\base\InvalidConfigException;
 use yii\helpers\Html;
 use yii\helpers\Json;
 use yii\i18n\PhpMessageSource;
-use yii\web\JsExpression;
 use yii\web\View;
 
 class Dropzone extends InputWidget
@@ -41,6 +40,9 @@ class Dropzone extends InputWidget
     {
         parent::init();
         $this->containerId = 'dz' . StringHelper::generateRandomString(14);
+        if ($this->drive === UploadTypeEnum::DRIVE_QINIU) {
+            $this->url = 'http://fake';
+        }
         $this->registerTranslations();
 
         $this->configureClientOptions();
@@ -50,45 +52,6 @@ class Dropzone extends InputWidget
             'maxFilesize' => $this->maxFilesize ?? null,
             'autoProcessQueue' => false,
         ];
-        $chunkParamsJs = /** @lang JavaScript */ <<< CHUNK_PARAMS_JS
-function (files, xhr, chunk) {
-    if (chunk) {
-        return {
-            chunk_index: chunk.index,
-            total_chunks: chunk.file.upload.totalChunkCount,
-        };
-    }
-}
-CHUNK_PARAMS_JS;
-
-        $chunksUploadedJs = /** @lang JavaScript */ <<< CHUNKS_UPLOADED_JS
-function (file, done) {
-    const { responseText } = file.xhr
-    let response = (typeof responseText === 'string') ? JSON.parse(responseText) : responseText
-    const { success, completed, data } = response
-    if (success && completed) {
-        data.eof = true
-        $.ajax({
-        type: 'POST',
-        url: `$this->url`,
-        data: data,
-        success: function (res) {
-            response = {};
-            console.log('res', res);
-            done();
-        },
-        error: function (msg) {
-            console.log('chunks uploaded response error', msg)
-            // currentFile.accepted = false;
-            // myDropzone._errorProcessing([currentFile], msg.responseText);
-        }
-     });
-    } else {
-    }
-    // All chunks have been uploaded. Perform any other actions
-    // This calls server-side code to merge all chunks for the currentFile
-}
-CHUNKS_UPLOADED_JS;
 
         if ($this->drive === UploadTypeEnum::DRIVE_LOCAL) {
             $clientOptions = array_merge($clientOptions, [
@@ -96,8 +59,6 @@ CHUNKS_UPLOADED_JS;
                 'forceChunking' => true,
                 'chunkSize' => $this->chunkSize,
                 'retryChunks' => true,
-                'params' => new JsExpression($chunkParamsJs),
-//                'chunksUploaded' => new JsExpression($chunksUploadedJs),
             ]);
         }
         $this->_encodedClientOptions = Json::encode(array_merge($clientOptions, $this->clientOptions)
@@ -133,38 +94,27 @@ CHUNKS_UPLOADED_JS;
     protected function registerClientScript(): void
     {
         $_view = $this->getView();
-//        $this->registerAssets($_view);
         $script = /**  @lang JavaScript */ <<< JS
-let dropzoneInstance = `myDropzone_$this->containerId`
-let metaData = $this->_encodedMetaData
-let qiniuToken = `{$this->getQiniuToken()}`
-let basePath = `$this->uploadBasePath`
-let fieldEl = $(`#{$this->getFieldId()}`)
-let uploadDrive = `$this->drive`
-let storeInDB = $this->_storeInDB
-let secondUpload = $this->_secondUpload
-let getHashUrl = `$this->getHashUrl`
-dropzoneInstance = new Dropzone(`#$this->containerId`, $this->_encodedClientOptions)
+let myDropzone_$this->containerId = new Dropzone(`#$this->containerId`, $this->_encodedClientOptions)
 if ($.isFunction(dropzoneInit)) {
-    let existFiles = $this->_encodedExistFiles;
-    dropzoneInstance.options.init = dropzoneInit(
-        dropzoneInstance, 
+    myDropzone_{$this->containerId}.options.init = dropzoneInit(
+        myDropzone_$this->containerId, 
         $('#{$this->getFieldId()}'), 
-        existFiles, 
-        storeInDB,
-        uploadDrive
+        $this->_encodedExistFiles, 
+        $this->_storeInDB,
+        `$this->drive`
     )
 }
 dropzoneEvents(
-    dropzoneInstance, 
-    fieldEl, 
-    metaData,
-    storeInDB, 
-    basePath,
-    uploadDrive,
-    qiniuToken,
-    secondUpload,
-    getHashUrl
+    myDropzone_$this->containerId, 
+    $(`#{$this->getFieldId()}`), 
+    $this->_encodedMetaData,
+    $this->_storeInDB, 
+    `$this->uploadBasePath`,
+    `$this->drive`,
+    `{$this->getQiniuToken()}`,
+    $this->_secondUpload,
+    `$this->getHashUrl`
 )
 JS;
         $_view->registerJs($script);

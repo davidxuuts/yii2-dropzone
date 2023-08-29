@@ -53,6 +53,14 @@ function dropzoneInit (myDropzone, fieldEl, existFiles, isStoreInDB, uploadDrive
     }
 
     if (uploadDrive === 'local') {
+        myDropzone.options.params = function (files, xhr, chunk) {
+            if (chunk) {
+                return {
+                    chunk_index: chunk.index,
+                    total_chunks: chunk.file.upload.totalChunkCount,
+                };
+            }
+        }
         myDropzone.options.chunksUploaded = function (file, done) {
             const { responseText } = file.xhr
             let response = (typeof responseText === 'string') ? JSON.parse(responseText) : responseText
