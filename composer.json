@@ -14,7 +14,7 @@
         "php": ">=8.0",
         "yiisoft/yii2": "^2.0.13",
         "npm-asset/dropzone": "^5.9.3",
-        "davidxu/yii2-base": "^2.0"
+        "davidxu/yii2-base": "^1.0.8"
     },
     "suggest": {
         "php-ffmpeg/php-ffmpeg": "^1.0",
