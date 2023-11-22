@@ -8,7 +8,7 @@ use davidxu\base\assets\QiniuJsAsset;
 use davidxu\base\enums\UploadTypeEnum;
 use davidxu\base\helpers\StringHelper;
 use davidxu\base\widgets\InputWidget;
-use davidxu\sweetalert2\assets\SweetAlert2Asset;
+use davidxu\base\assets\SweetAlert2Asset;
 use Yii;
 use yii\base\Exception;
 use yii\base\InvalidConfigException;
