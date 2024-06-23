@@ -56,6 +56,13 @@
   border-radius: 0.25rem;
   margin-bottom: 0;
 }
+.dropzone-previews .col .dz-remove-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 1rem;
+  font-size: 2rem;
+  text-align: center;
+}
 .dropzone-previews .col .progress {
   position: absolute;
   bottom: 2rem;
@@ -73,6 +80,12 @@
   padding-left: 1.5rem;
   border-radius: 0.5rem;
   cursor: pointer;
+}
+
+[data-bs-theme=dark] .dropzone-previews .fileinput-button {
+  border: #495057 1px solid;
+  color: #d9d9d9;
+  background-color: #343a40;
 }
 
 .none {

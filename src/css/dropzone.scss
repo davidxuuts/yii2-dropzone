@@ -1,5 +1,6 @@
 $background-color: #efefef;
 $text-color: #ffffff;
+
 .dropzone-previews {
   min-height: 10rem;
   margin: 0;
@@ -58,6 +59,13 @@ $text-color: #ffffff;
         margin-bottom: 0;
       }
     }
+    .dz-remove-icon {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 1rem;
+      font-size: 2rem;
+      text-align: center;
+    }
     .progress {
       position: absolute;
       bottom: 2rem;
@@ -78,9 +86,19 @@ $text-color: #ffffff;
     cursor: pointer;
   }
 }
+[data-bs-theme=dark] {
+  .dropzone-previews {
+    .fileinput-button {
+      border: #495057 1px solid;
+      color: #d9d9d9;
+      background-color: #343a40;
+    }
+  }
+}
 .none {
   display: none;
 }
+
 .dz-remove {
   position: absolute;
   top: -0.5rem;

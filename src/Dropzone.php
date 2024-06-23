@@ -2,13 +2,13 @@
 
 namespace davidxu\dropzone;
 
-use davidxu\base\assets\DropzoneAsset;
-use davidxu\base\assets\QETagAsset;
-use davidxu\base\assets\QiniuJsAsset;
-use davidxu\base\enums\UploadTypeEnum;
-use davidxu\base\helpers\StringHelper;
-use davidxu\base\widgets\InputWidget;
-use davidxu\base\assets\SweetAlert2Asset;
+use davidxu\dropzone\assets\DropzoneAsset;
+use davidxu\adminlte4\assets\QETagAsset;
+use davidxu\adminlte4\assets\QiniuJsAsset;
+use davidxu\adminlte4\enums\UploadTypeEnum;
+use davidxu\adminlte4\helpers\StringHelper;
+use davidxu\adminlte4\widgets\InputWidget;
+use davidxu\adminlte4\assets\SweetAlert2Asset;
 use Yii;
 use yii\base\Exception;
 use yii\base\InvalidConfigException;
@@ -122,12 +122,13 @@ JS;
 
     private function configureClientOptions(): void
     {
-        $previewTemplate = '<div class="col">'
+        $previewTemplate = '<div class="col position-relative">'
             . '    <div class="preview"><img data-dz-thumbnail alt="unknown" /></div>'
-            . '        <div class="info">'
-            . '            <p class="size text-right" data-dz-size></p>'
-            . '            <p class="name text-center text-middle" data-dz-name></p>'
-            . '        </div>'
+            . '    <div class="info">'
+            . '        <p class="size text-end" data-dz-size></p>'
+            . '        <p class="name text-center text-middle" data-dz-name></p>'
+            . '    </div>'
+            . '    <a class="position-absolute top-0 start-100 translate-middle dz-remove-icon" href="javascript:undefined;" data-dz-remove><i class="bi bi-x-circle-fill"></i></a>'
             . '    <div class="progress active" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">'
             . '        <div'
             . '            class="progress-bar progress-bar-striped progress-bar-animated progress-bar-success"'
@@ -138,7 +139,7 @@ JS;
         $clientOptions = [
             'url' => $this->url,
             'paramName' => 'file',
-            'addRemoveLinks' => true,
+//            'addRemoveLinks' => true,
             'parallelUploads' => 20,
             'previewsContainer' => '#previews_' . $this->containerId,
             'clickable' => '#fileinput_' . $this->containerId,

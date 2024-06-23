@@ -25,7 +25,7 @@ if ($hasModel) {
         <div class="col">
             <?= Html::tag(
                 'div',
-                '<i class="fas fa-plus"></i>',
+                '<i class="bi bi-plus"></i>',
                 ['class' => 'fileinput-button', 'id' => 'fileinput_' . $containerId]
             ) ?>
         </div>
