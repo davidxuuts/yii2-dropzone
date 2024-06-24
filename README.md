@@ -4,7 +4,7 @@ A dropzone uploader extension for Yii2
 
 Installation
 ------------
-This is v2.0, it supports multiple dropzone instances on one page;
+This is v3.0, it supports multiple dropzone instances on one page and it uses bootstrap5;
 if ensure only one instance per page, you can still use v1.0.
 
 You can upload files to local server or Qiniu kodo currently.
@@ -14,13 +14,13 @@ The preferred way to install this extension is through [composer](http://getcomp
 Either run
 
 ```
-php composer.phar require --prefer-dist davidxu/yii2-dropzone "^2.0.0"
+php composer.phar require --prefer-dist davidxu/yii2-dropzone "^3.0.0"
 ```
 
 or add
 
 ```
-"davidxu/yii2-dropzone": "^2.0.0"
+"davidxu/yii2-dropzone": "^3.0.0"
 ```
 
 to the require section of your `composer.json` file.
@@ -118,8 +118,8 @@ echo $form->field($model, 'image_src')
 
 ##### In Upload Controller:
 ```php
-use davidxu\dropzone\actions\LocalAction;
-use davidxu\dropzone\models\Attachment;
+use davidxu\adminlte4\actions\LocalAction;
+use davidxu\adminlte4\models\Attachment;
 use yii\web\Controller;
 
 class UploadController extends Controller
@@ -148,8 +148,8 @@ class UploadController extends Controller
 ```php
 <?php
 use davidxu\dropzone\Dropzone;
-use davidxu\base\enums\QiniuUploadRegionEnum;
-use davidxu\base\enums\UploadTypeEnum;
+use davidxu\adminlte4\enums\QiniuUploadRegionEnum;
+use davidxu\adminlte4\enums\UploadTypeEnum;
 use yii\helpers\Url;
 // Important: register DropzoneAsset first on page
 use davidxu\dropzone\assets\DropzoneAsset;
@@ -198,8 +198,8 @@ echo $form->field($model, 'image_src')
 
 ##### In Upload Controller:
 ```php
-use davidxu\dropzone\actions\QiniuAction;
-use davidxu\dropzone\models\Attachment;
+use davidxu\adminlte4\actions\QiniuAction;
+use davidxu\adminlte4\models\Attachment;
 use yii\web\Controller;
 use yii\web\BadRequestHttpException;
 

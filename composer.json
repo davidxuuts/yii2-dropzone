@@ -13,7 +13,8 @@
     "require": {
         "php": ">=8.0",
         "yiisoft/yii2": "^2.0.13",
-        "npm-asset/dropzone": "^5.9.3"
+        "npm-asset/dropzone": "^5.9.3",
+        "davidxu/yii2-adminlte4": "^1.0.0"
     },
     "suggest": {
         "php-ffmpeg/php-ffmpeg": "^1.0",
